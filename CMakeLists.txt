@@ -16,8 +16,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 file(GLOB_RECURSE SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
 add_executable(main ${SOURCES})
 
-target_include_directories(main PRIVATE /opt/homebrew/Cellar/libomp/20.1.3/include)
-
 target_link_libraries(main PRIVATE MetavisionSDK::core MetavisionSDK::stream MetavisionSDK::ui)
 target_link_libraries(main PRIVATE ${OpenCV_LIBRARIES})
 target_link_libraries(main PRIVATE spdlog::spdlog)
