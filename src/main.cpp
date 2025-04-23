@@ -22,12 +22,6 @@ int main() {
   cv::Mat bottomLeft = cv::Mat::zeros({width / 2, height / 2}, CV_8U);
   cv::Mat bottomRight = cv::Mat::zeros({width / 2, height / 2}, CV_8U);
 
-  // Set the starting time point
-  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
-
-  // Track if first time-stamp has been set
-  bool started = false;
-
   // Callback to be called with events
   auto callback = [&](const Metavision::EventCD *begin,
                       const Metavision::EventCD *end) {
@@ -69,9 +63,6 @@ int main() {
   // Loop while running
   spdlog::info("Started main loop");
 
-  // Timer for fading
-  std::chrono::time_point time = std::chrono::high_resolution_clock::now();
-
   while (true) {
     // Show the image
     cv::imshow("Row", raw);
@@ -85,6 +76,7 @@ int main() {
 
     // Exit
     if (input == 'q') {
+      spdlog::info("User termination");
       break;
     }
 
@@ -95,6 +87,7 @@ int main() {
     bottomLeft /= 2;
     bottomRight /= 2;
   }
+  spdlog::info("Exiting");
 
   // Shut down the camera
   spdlog::info("Shutting down the camera");
