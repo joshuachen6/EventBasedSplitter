@@ -1,10 +1,15 @@
 #include <metavision/sdk/base/events/event_cd.h>
 #include <metavision/sdk/stream/camera.h>
+#include <omp-tools.h>
+#include <omp.h>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <spdlog/spdlog.h>
 
 int main() {
+  // Print diagnostic information
+  spdlog::info("Max threads {}", omp_get_max_threads());
+
   // Start the camera
   spdlog::info("Starting camera");
   Metavision::Camera camera = Metavision::Camera::from_first_available();
@@ -25,9 +30,10 @@ int main() {
   // Callback to be called with events
   auto callback = [&](const Metavision::EventCD *begin,
                       const Metavision::EventCD *end) {
-  // Loop through all the events
-#pragma opm parallel_for
+// Loop through all the events
+#pragma omp parallel for
     for (auto it = begin; it != end; ++it) {
+
       int value = it->p * 255;
       int x = it->x / 2;
       int y = it->y / 2;
