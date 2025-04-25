@@ -14,7 +14,9 @@ find_package(OpenMP REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 file(GLOB_RECURSE SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
-add_executable(main ${SOURCES})
+add_executable(main ${SOURCES} demo/main.cpp)
+
+add_library(lib SHARED ${SOURCES})
 
 target_link_libraries(main PRIVATE MetavisionSDK::core MetavisionSDK::stream MetavisionSDK::ui)
 target_link_libraries(main PRIVATE ${OpenCV_LIBRARIES})
@@ -22,4 +24,12 @@ target_link_libraries(main PRIVATE spdlog::spdlog)
 target_link_libraries(main PRIVATE OpenMP::OpenMP_CXX)
 
 target_compile_options(main PRIVATE -Wall)
+target_compile_options(main PRIVATE -O3)
+
+target_link_libraries(lib PRIVATE MetavisionSDK::core MetavisionSDK::stream MetavisionSDK::ui)
+target_link_libraries(lib PRIVATE ${OpenCV_LIBRARIES})
+target_link_libraries(lib PRIVATE spdlog::spdlog)
+target_link_libraries(lib PRIVATE OpenMP::OpenMP_CXX)
+
+target_compile_options(lib PRIVATE -Wall)
 
