@@ -1,11 +1,8 @@
 #include "util.h"
-#include <atomic>
 #include <chrono>
 #include <metavision/hal/facilities/i_roi.h>
 #include <metavision/sdk/base/events/event_cd.h>
 #include <metavision/sdk/stream/camera.h>
-#include <omp-tools.h>
-#include <omp.h>
 #include <opencv2/core.hpp>
 #include <opencv2/core/hal/interface.h>
 #include <opencv2/highgui.hpp>
@@ -13,9 +10,6 @@
 #include <spdlog/spdlog.h>
 
 int main() {
-  // Print diagnostic information
-  spdlog::info("Max threads {}", omp_get_max_threads());
-
   // Start the camera
   spdlog::info("Starting camera");
   Metavision::Camera camera = Metavision::Camera::from_first_available();
@@ -32,30 +26,29 @@ int main() {
   // Counter to keep track of the event rate
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
+  // Worker to write to the buffer
   auto worker = [&](const Metavision::EventCD *begin,
                     const Metavision::EventCD *end) {
-    // Diagnostic
-    long dt = std::chrono::duration_cast<std::chrono::microseconds>(
-                  std::chrono::high_resolution_clock::now() - start)
-                  .count();
-
-    if ((dt - end->t) < 1e6) {
-
-      // Loop through all the events
-      for (auto it = begin; it != end; ++it) {
-        // Write into raw
-        cv::Vec3b *ptr = raw.ptr<cv::Vec3b>(it->y, it->x);
-        (*ptr)[0] = it->p * 255;
-        (*ptr)[1] = (1 - it->p) * 255;
-      }
+    // Loop through all the events
+    for (auto it = begin; it != end; ++it) {
+      // Write into raw
+      cv::Vec3b *ptr = raw.ptr<cv::Vec3b>(it->y, it->x);
+      (*ptr)[0] = it->p * 255;
+      (*ptr)[1] = (1 - it->p) * 255;
     }
   };
 
   // Callback to be called with events
   auto callback = [&](const Metavision::EventCD *begin,
                       const Metavision::EventCD *end) {
-    std::thread thread(worker, begin, end);
-    thread.detach();
+    long dt = std::chrono::duration_cast<std::chrono::microseconds>(
+                  std::chrono::high_resolution_clock::now() - start)
+                  .count();
+
+    if ((dt - end->t) < 1e5) {
+      std::thread thread(worker, begin, end);
+      thread.detach();
+    }
   };
 
   // Register the callback
@@ -67,21 +60,11 @@ int main() {
   // Loop while running
   spdlog::info("Started main loop");
 
+  // Default parameters
   const int roiSize = 10;
   const int scaleFactor = 20;
 
-  // Set up the regions of interest
-  // Metavision::I_ROI &roi = camera.get_facility<Metavision::I_ROI>();
-  // roi.set_windows({{0, 0, roiSize, roiSize},
-  //                  {width - roiSize, 0, roiSize, roiSize},
-  //                  {0, height - roiSize, roiSize, roiSize},
-  //                  {width - roiSize, height - roiSize, roiSize, roiSize}});
-  // roi.set_window({0, 0, roiSize, roiSize});
-  // roi.enable(true);
-
   while (true) {
-    // Get the submats
-
     // Show the image
     cv::imshow("Raw", raw);
     cv::imshow("top left",
@@ -96,6 +79,10 @@ int main() {
                cutRegion(raw,
                          {width - roiSize, height - roiSize, roiSize, roiSize},
                          scaleFactor));
+    cv::imshow("center", cutRegion(raw,
+                                   {(width - roiSize) / 2,
+                                    (height - roiSize) / 2, roiSize, roiSize},
+                                   scaleFactor));
 
     // Wait for user input
     char input = cv::waitKey(1);
