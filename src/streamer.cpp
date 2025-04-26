@@ -7,12 +7,18 @@
 #include <spdlog/spdlog.h>
 
 // Global variables
-static cv::Mat *image;
-static Metavision::Camera *camera;
+static cv::Mat *image = new cv::Mat();
+static Metavision::Camera *camera = new Metavision::Camera();
 static bool running = false;
 static bool initialized = false;
 
 int initialize(uint8_t **buffer, uint8_t *width, uint8_t *height) {
+  // Check to see if already initialized
+  if (initialized) {
+    spdlog::error("Already initialized");
+    return -1;
+  }
+
   try {
     // Create the camera
     *camera = Metavision::Camera::from_first_available();
