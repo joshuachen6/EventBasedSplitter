@@ -22,6 +22,7 @@ target_link_libraries(main PRIVATE ${OpenCV_LIBRARIES})
 target_link_libraries(main PRIVATE spdlog::spdlog)
 
 target_compile_options(main PRIVATE -Wall)
+target_compile_options(main PRIVATE -O3)
 
 target_link_libraries(lib PRIVATE MetavisionSDK::core MetavisionSDK::stream MetavisionSDK::ui)
 target_link_libraries(lib PRIVATE ${OpenCV_LIBRARIES})
