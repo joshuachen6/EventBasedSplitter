@@ -5,10 +5,11 @@
 #include <metavision/sdk/stream/camera.h>
 #include <opencv2/opencv.hpp>
 #include <spdlog/spdlog.h>
+#include <optional>
 
 // Global variables
-static cv::Mat *image;
-static Metavision::Camera *camera;
+static std::optional<cv::Mat> image;
+static std::optional<Metavision::Camera> camera;
 static bool running = false;
 static bool initialized = false;
 
@@ -21,7 +22,7 @@ int initialize(uint8_t **buffer, uint8_t *width, uint8_t *height) {
 
   try {
     // Create the camera
-    camera = new Metavision::Camera(Metavision::Camera::from_first_available());
+    camera = Metavision::Camera::from_first_available();
   } catch (const std::exception &e) {
     // Catch any errors and log
     spdlog::error(e.what());
@@ -33,7 +34,7 @@ int initialize(uint8_t **buffer, uint8_t *width, uint8_t *height) {
   *height = camera->geometry().get_height();
 
   // Create the image
-  image = new cv::Mat(cv::Mat::zeros({*width, *height}, CV_8UC3));
+  image = cv::Mat::zeros({*width, *height}, CV_8UC3);
 
   // Assign the buffer
   *buffer = image->data;
@@ -127,10 +128,10 @@ int stop() {
 
   // Clean up if needed
   if (camera) {
-    delete camera;
+    camera.reset();
   }
   if (image) {
-    delete image;
+    camera.reset();
   }
 
   // Reset global variables
