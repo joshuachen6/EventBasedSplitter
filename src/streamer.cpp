@@ -119,9 +119,19 @@ int start() {
 }
 
 int stop() {
-  // Clean up
-  delete camera;
-  delete image;
+  // Check if initialized
+  if (not initialized) {
+    spdlog::error("Not initialized");
+    return -1;
+  }
+
+  // Clean up if needed
+  if (camera) {
+    delete camera;
+  }
+  if (image) {
+    delete image;
+  }
 
   // Reset global variables
   initialized = false;
