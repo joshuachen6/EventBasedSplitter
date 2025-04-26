@@ -7,8 +7,8 @@
 #include <spdlog/spdlog.h>
 
 // Global variables
-static cv::Mat *image = new cv::Mat();
-static Metavision::Camera *camera = new Metavision::Camera();
+static cv::Mat *image;
+static Metavision::Camera *camera;
 static bool running = false;
 static bool initialized = false;
 
@@ -21,7 +21,7 @@ int initialize(uint8_t **buffer, uint8_t *width, uint8_t *height) {
 
   try {
     // Create the camera
-    *camera = Metavision::Camera::from_first_available();
+    camera = new Metavision::Camera(Metavision::Camera::from_first_available());
   } catch (const std::exception &e) {
     // Catch any errors and log
     spdlog::error(e.what());
@@ -33,7 +33,7 @@ int initialize(uint8_t **buffer, uint8_t *width, uint8_t *height) {
   *height = camera->geometry().get_height();
 
   // Create the image
-  *image = cv::Mat::zeros({*width, *height}, CV_8UC3);
+  image = new cv::Mat(cv::Mat::zeros({*width, *height}, CV_8UC3));
 
   // Assign the buffer
   *buffer = image->data;
