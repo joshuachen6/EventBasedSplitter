@@ -48,7 +48,7 @@ def main():
         return
 
     # Set the fade
-    status = library.setFadeTime(500)
+    status = library.setFadeTime(1000)
     if status != 0:
         loguru.logger.critical("Failed to set the fade time")
         return

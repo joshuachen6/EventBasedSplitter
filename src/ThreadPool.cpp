@@ -73,7 +73,7 @@ void ThreadPool::processEvents(const Metavision::EventCD *begin,
 }
 
 void ThreadPool::fade(int index, long long dt) {
-  uint8_t factor = (1.0 / dt) * 255;
+  uint8_t factor = (((double)fadeTime / 1e3) / dt) * 255;
   cv::Mat &mat = workBuffer[index];
   for (auto it = mat.begin<cv::Vec3b>(); it != mat.end<cv::Vec3b>(); ++it) {
     for (auto i = 0; i < 3; ++i) {
