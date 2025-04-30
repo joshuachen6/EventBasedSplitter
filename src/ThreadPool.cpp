@@ -1,7 +1,9 @@
 #include "ThreadPool.h"
+#include "streamer.h"
 #include <chrono>
 #include <metavision/sdk/base/events/event_cd.h>
 #include <opencv2/core/mat.hpp>
+#include <ratio>
 #include <spdlog/spdlog.h>
 
 ThreadPool::ThreadPool(int threads, cv::Size imageSize) {
@@ -92,6 +94,10 @@ void ThreadPool::sum(cv::Mat &output) {
     }
   }
 }
+
+void ThreadPool::setFadeTime(uint32_t milliseconds) { fadeTime = milliseconds; }
+
+uint32_t ThreadPool::getFadeTime() { return fadeTime; }
 
 void ThreadPool::shutdown() {
   running = false;

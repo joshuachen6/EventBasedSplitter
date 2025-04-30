@@ -16,6 +16,8 @@ private:
   std::vector<cv::Mat> workBuffer;
   bool running;
 
+  uint32_t fadeTime = 1e3;
+
   /**
    * @brief Processes the events
    *
@@ -54,6 +56,18 @@ public:
    * @param output The output buffer to write to
    */
   void sum(cv::Mat &output);
+  /**
+   * @brief Sets the time to fade
+   *
+   * @param milliseconds The time to fade in milliseconds
+   */
+  void setFadeTime(uint32_t milliseconds);
+  /**
+   * @brief Gets the time it takes to fade
+   *
+   * @return The fade time in milliseconds
+   */
+  uint32_t getFadeTime();
   /**
    * @brief Stops the thread pool
    */

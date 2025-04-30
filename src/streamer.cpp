@@ -153,3 +153,23 @@ int setVerbose(bool verbose) {
   spdlog::set_level(verbose ? spdlog::level::debug : spdlog::level::info);
   return 0;
 }
+
+int setFadeTime(uint32_t milliseconds) {
+  if (not running) {
+    spdlog::error("Not running");
+    return -1;
+  }
+
+  pool->setFadeTime(milliseconds);
+  return 0;
+}
+
+int getFadeTime(uint32_t *fadeTime) {
+  if (not running) {
+    spdlog::error("Not running");
+    return -1;
+  }
+
+  *fadeTime = pool->getFadeTime();
+  return 0;
+}

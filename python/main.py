@@ -32,16 +32,26 @@ def main():
 
     # Initialize
     status = library.initialize(buffer_pointer, width_pointer, height_pointer)
-    loguru.logger.info("Initialization status", status)
+    if status != 0:
+        loguru.logger.critical("Failed to initialize camera stream")
+        return
 
     # Get values
     width = width_pointer.contents.value
     height = height_pointer.contents.value
-    loguru.logger.info("Size", width, height)
+    loguru.logger.debug("Size ({}, {})", width, height)
 
     # Start the stream
     status = library.start(14)
-    loguru.logger.info("Start status", status)
+    if status != 0:
+        loguru.logger.critical("Failed to start camera stream")
+        return
+
+    # Set the fade
+    status = library.setFadeTime(500)
+    if status != 0:
+        loguru.logger.critical("Failed to set the fade time")
+        return
 
     # Load into numpy array
     buffer = numpy.ctypeslib.as_array(buffer_pointer.contents, (height, width, 3))
