@@ -1,9 +1,7 @@
 #include "ThreadPool.h"
-#include "streamer.h"
 #include <chrono>
 #include <metavision/sdk/base/events/event_cd.h>
 #include <opencv2/core/mat.hpp>
-#include <ratio>
 #include <spdlog/spdlog.h>
 
 ThreadPool::ThreadPool(int threads, cv::Size imageSize) {
@@ -76,7 +74,7 @@ void ThreadPool::fade(int index, long long dt) {
   uint8_t factor = (((double)fadeTime / 1e3) / dt) * 255;
   cv::Mat &mat = workBuffer[index];
   for (auto it = mat.begin<cv::Vec3b>(); it != mat.end<cv::Vec3b>(); ++it) {
-    for (auto i = 0; i < 3; ++i) {
+    for (auto i = 0; i < 2; ++i) {
       auto &val = (*it)[i];
       val = std::max(val - factor, 0);
     }

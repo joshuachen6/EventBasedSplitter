@@ -18,6 +18,7 @@ static uint8_t *rawBuffer = nullptr;
 static bool running = false;
 static bool initialized = false;
 static cv::Size size;
+static uint32_t eventTimeout = 1e5;
 
 int initialize(uint8_t **buffer, uint32_t *width, uint32_t *height) {
   // Check to see if already initialized
@@ -88,7 +89,7 @@ int start(uint32_t numThreads) {
                   .count();
 
     // Check if the events have expired
-    if (true or (dt - end->t) < 1e5) {
+    if (true or (dt - end->t) < eventTimeout) {
       // Submit task
       pool->addTask({begin, end});
     }
@@ -171,5 +172,15 @@ int getFadeTime(uint32_t *fadeTime) {
   }
 
   *fadeTime = pool->getFadeTime();
+  return 0;
+}
+
+int getTimeout(uint32_t *timeout) {
+  *timeout = eventTimeout;
+  return 0;
+}
+
+int setTimeout(uint32_t timeout) {
+  eventTimeout = timeout;
   return 0;
 }

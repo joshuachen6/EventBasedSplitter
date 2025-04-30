@@ -48,9 +48,15 @@ def main():
         return
 
     # Set the fade
-    status = library.setFadeTime(1000)
+    status = library.setFadeTime(1_000)
     if status != 0:
         loguru.logger.critical("Failed to set the fade time")
+        return
+
+    # Set the timeout for the events
+    status = library.setTimeout(10_000)
+    if status != 0:
+        loguru.logger.critical("Failed to set the itmeout")
         return
 
     # Load into numpy array
