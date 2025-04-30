@@ -1,27 +1,37 @@
 #pragma once
+#include <cstdint>
 #include <metavision/sdk/stream/camera.h>
 
 extern "C" {
-  /**
-   * @brief Sets up the camera stream
-   *
-   * @param buffer The address to store the camera stream pointer
-   * @param width The address to store the width of the camera
-   * @param height The address to store the height of the camera
-   *
-   * @return The status
-   */
-  int initialize(uint8_t **buffer, uint8_t *width, uint8_t *height);
-  /**
-   * @brief Starts the stream
-   *
-   * @return The status
-   */
-  int start();
-  /**
-   * @brief Stops the camera and tries to clean it up
-   *
-   * @return The status
-   */
-  int stop();
+/**
+ * @brief Sets up the camera stream
+ *
+ * @param buffer The address to store the camera stream pointer
+ * @param width The address to store the width of the camera
+ * @param height The address to store the height of the camera
+ *
+ * @return The status
+ */
+int initialize(uint8_t **buffer, uint32_t *width, uint32_t *height);
+/**
+ * @brief Starts the stream
+ *
+ * @param numThreads The number of threads to run with
+ *
+ * @return The status
+ */
+int start(uint32_t numThreads);
+/**
+ * @brief Stops the camera and tries to clean it up
+ *
+ * @return The status
+ */
+int stop();
+/**
+ * @brief Sets if the output should be verbose
+ *
+ * @param verbose If the output should be verbose
+ * @return The status
+ */
+int setVerbose(bool verbose);
 }
