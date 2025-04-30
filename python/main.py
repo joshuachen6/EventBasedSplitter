@@ -2,7 +2,7 @@ import numpy
 import cv2
 import ctypes
 import os
-import time
+import loguru
 
 
 def main():
@@ -32,16 +32,16 @@ def main():
 
     # Initialize
     status = library.initialize(buffer_pointer, width_pointer, height_pointer)
-    print("Initialization status", status)
+    loguru.logger.info("Initialization status", status)
 
     # Get values
     width = width_pointer.contents.value
     height = height_pointer.contents.value
-    print("Size", width, height)
+    loguru.logger.info("Size", width, height)
 
     # Start the stream
     status = library.start(14)
-    print("Start status", status)
+    loguru.logger.info("Start status", status)
 
     # Load into numpy array
     buffer = numpy.ctypeslib.as_array(buffer_pointer.contents, (height, width, 3))

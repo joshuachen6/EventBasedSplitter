@@ -7,12 +7,11 @@
 ThreadPool::ThreadPool(int threads, cv::Size imageSize) {
   // Reserve space
   threadPool.reserve(threads);
-  workBuffer.reserve(threads);
+  workBuffer.resize(threads);
 
   // Fill buffers
-  for (auto i = 0; i < threads; ++i) {
-    workBuffer.push_back(cv::Mat::zeros(imageSize, CV_8UC3));
-  }
+  std::fill(workBuffer.begin(), workBuffer.end(),
+            cv::Mat::zeros(imageSize, CV_8UC3));
 
   // Start running
   running = true;
@@ -77,7 +76,7 @@ void ThreadPool::fade(int index, long long dt) {
   for (auto it = mat.begin<cv::Vec3b>(); it != mat.end<cv::Vec3b>(); ++it) {
     for (auto i = 0; i < 3; ++i) {
       auto &val = (*it)[i];
-      val = std::fmax(val - factor, 0);
+      val = std::max(val - factor, 0);
     }
   }
 }
