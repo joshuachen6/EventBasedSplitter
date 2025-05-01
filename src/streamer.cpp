@@ -27,12 +27,6 @@ int initialize(StreamerInstance **instance, uint8_t **buffer, uint32_t *width, u
     return -1;
   }
 
-  // Check to see if already initialized
-  if (*instance and (*instance)->initialized) {
-    spdlog::error("Already initialized");
-    return -1;
-  }
-
   *instance = new StreamerInstance();
 
   try {
