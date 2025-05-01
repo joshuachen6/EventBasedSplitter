@@ -34,4 +34,18 @@ int stop();
  * @return The status
  */
 int setVerbose(bool verbose);
+/**
+ * @brief Sets the time it takes to fade
+ *
+ * @param milliseconds The time to fade in milliseconds
+ * @return The status
+ */
+int setFadeTime(uint32_t milliseconds);
+/**
+ * @brief Get the fade time
+ *
+ * @param fadeTime The pointer to write the fade time in milliseconds to
+ * @return The status
+ */
+int getFadeTime(uint32_t *fadeTime);
 }

@@ -1,7 +1,6 @@
 #include "streamer.h"
 
 #include "ThreadPool.h"
-#include <chrono>
 #include <cstdint>
 #include <exception>
 #include <metavision/sdk/stream/camera.h>
@@ -76,22 +75,11 @@ int start(uint32_t numThreads) {
   // Create the pool
   pool.emplace(numThreads, size);
 
-  // The start time
-  auto startTime = std::chrono::high_resolution_clock::now();
-
   // Create the event callback
   auto eventCallback = [&](const Metavision::EventCD *begin,
                            const Metavision::EventCD *end) {
-    // Get the time since start
-    long dt = std::chrono::duration_cast<std::chrono::microseconds>(
-                  std::chrono::high_resolution_clock::now() - startTime)
-                  .count();
-
-    // Check if the events have expired
-    if (true or (dt - end->t) < 1e5) {
-      // Submit task
-      pool->addTask({begin, end});
-    }
+    // Submit task
+    pool->addTask({begin, end});
   };
 
   // Register the callback
@@ -132,13 +120,14 @@ int stop() {
     camera.reset();
   }
   if (image) {
-    camera.reset();
+    image.reset();
   }
   if (pool) {
     pool.reset();
   }
   if (rawBuffer) {
     delete[] rawBuffer;
+    rawBuffer = nullptr;
   }
 
   // Reset global variables
@@ -151,5 +140,25 @@ int stop() {
 
 int setVerbose(bool verbose) {
   spdlog::set_level(verbose ? spdlog::level::debug : spdlog::level::info);
+  return 0;
+}
+
+int setFadeTime(uint32_t milliseconds) {
+  if (not running) {
+    spdlog::error("Not running");
+    return -1;
+  }
+
+  pool->setFadeTime(milliseconds);
+  return 0;
+}
+
+int getFadeTime(uint32_t *fadeTime) {
+  if (not running) {
+    spdlog::error("Not running");
+    return -1;
+  }
+
+  *fadeTime = pool->getFadeTime();
   return 0;
 }
