@@ -15,6 +15,8 @@ private:
   std::vector<std::thread> threadPool;
   std::vector<cv::Mat> workBuffer;
   bool running;
+  std::mutex waitMutex;
+  std::condition_variable conditionVariable;
 
   uint32_t fadeTime = 1e3;
 
@@ -31,9 +33,8 @@ private:
    * @brief Fades a given mat
    *
    * @param index The mat to fade
-   * @param dt Change in time
    */
-  void fade(int index, long long dt);
+  void fade(int index);
 
 public:
   /**

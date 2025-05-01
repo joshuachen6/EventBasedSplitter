@@ -48,19 +48,4 @@ int setFadeTime(uint32_t milliseconds);
  * @return The status
  */
 int getFadeTime(uint32_t *fadeTime);
-/**
- * @brief Get the timeout time
- *
- * @param timeout The event timeout time in milliseconds written into the
- * pointer
- * @return The status
- */
-int getTimeout(uint32_t *timeout);
-/**
- * @brief Sets the timeout
- *
- * @param timeout The timeout for events
- * @return The status
- */
-int setTimeout(uint32_t timeout);
 }

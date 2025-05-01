@@ -1,7 +1,6 @@
 #include "streamer.h"
 
 #include "ThreadPool.h"
-#include <chrono>
 #include <cstdint>
 #include <exception>
 #include <metavision/sdk/stream/camera.h>
@@ -18,7 +17,6 @@ static uint8_t *rawBuffer = nullptr;
 static bool running = false;
 static bool initialized = false;
 static cv::Size size;
-static uint32_t eventTimeout = 1e5;
 
 int initialize(uint8_t **buffer, uint32_t *width, uint32_t *height) {
   // Check to see if already initialized
@@ -77,22 +75,11 @@ int start(uint32_t numThreads) {
   // Create the pool
   pool.emplace(numThreads, size);
 
-  // The start time
-  auto startTime = std::chrono::high_resolution_clock::now();
-
   // Create the event callback
   auto eventCallback = [&](const Metavision::EventCD *begin,
                            const Metavision::EventCD *end) {
-    // Get the time since start
-    long dt = std::chrono::duration_cast<std::chrono::microseconds>(
-                  std::chrono::high_resolution_clock::now() - startTime)
-                  .count();
-
-    // Check if the events have expired
-    if (true or (dt - end->t) < eventTimeout) {
-      // Submit task
-      pool->addTask({begin, end});
-    }
+    // Submit task
+    pool->addTask({begin, end});
   };
 
   // Register the callback
@@ -133,13 +120,14 @@ int stop() {
     camera.reset();
   }
   if (image) {
-    camera.reset();
+    image.reset();
   }
   if (pool) {
     pool.reset();
   }
   if (rawBuffer) {
     delete[] rawBuffer;
+    rawBuffer = nullptr;
   }
 
   // Reset global variables
@@ -172,15 +160,5 @@ int getFadeTime(uint32_t *fadeTime) {
   }
 
   *fadeTime = pool->getFadeTime();
-  return 0;
-}
-
-int getTimeout(uint32_t *timeout) {
-  *timeout = eventTimeout;
-  return 0;
-}
-
-int setTimeout(uint32_t timeout) {
-  eventTimeout = timeout;
   return 0;
 }
