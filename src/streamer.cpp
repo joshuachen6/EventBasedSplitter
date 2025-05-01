@@ -9,25 +9,35 @@
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
-// Global variables
-static std::optional<cv::Mat> image;
-static std::optional<Metavision::Camera> camera;
-static std::optional<ThreadPool> pool;
-static uint8_t *rawBuffer = nullptr;
-static bool running = false;
-static bool initialized = false;
-static cv::Size size;
+struct StreamerInstance {
+  std::optional<cv::Mat> image;
+  std::optional<Metavision::Camera> camera;
+  std::optional<ThreadPool> pool;
+  std::optional<std::thread> mainThread;
+  uint8_t *rawBuffer = nullptr;
+  bool running = false;
+  bool initialized = false;
+  cv::Size size;
+};
 
-int initialize(uint8_t **buffer, uint32_t *width, uint32_t *height) {
+int initialize(StreamerInstance **instance, uint8_t **buffer, uint32_t *width, uint32_t *height) {
+  // Check if valid pointer
+  if (not instance) {
+    spdlog::error("Nullptr passed");
+    return -1;
+  }
+
   // Check to see if already initialized
-  if (initialized) {
+  if (*instance and (*instance)->initialized) {
     spdlog::error("Already initialized");
     return -1;
   }
 
+  *instance = new StreamerInstance();
+
   try {
     // Create the camera
-    camera = Metavision::Camera::from_first_available();
+    (*instance)->camera = Metavision::Camera::from_first_available();
   } catch (const std::exception &e) {
     // Catch any errors and log
     spdlog::error(e.what());
@@ -35,57 +45,61 @@ int initialize(uint8_t **buffer, uint32_t *width, uint32_t *height) {
   }
 
   // Get the dimensions and assign them
-  *width = camera->geometry().get_width();
-  *height = camera->geometry().get_height();
+  *width = (*instance)->camera->geometry().get_width();
+  *height = (*instance)->camera->geometry().get_height();
 
-  size = cv::Size(*width, *height);
+  (*instance)->size = cv::Size(*width, *height);
 
   // Create the raw buffer
-  rawBuffer = new uint8_t[*width * *height * 3];
-  std::fill_n(rawBuffer, *width * *height * 3, 0);
+  (*instance)->rawBuffer = new uint8_t[*width * *height * 3];
+  std::fill_n((*instance)->rawBuffer, *width * *height * 3, 0);
 
   // Create the image
-  image = cv::Mat(*height, *width, CV_8UC3, rawBuffer);
+  (*instance)->image = cv::Mat(*height, *width, CV_8UC3, (*instance)->rawBuffer);
 
   // Assign the buffer
-  *buffer = rawBuffer;
+  *buffer = (*instance)->rawBuffer;
 
   // Now initialized
-  initialized = true;
+  (*instance)->initialized = true;
 
   spdlog::debug("Camera initialized");
   return 0;
 }
 
-int start(uint32_t numThreads) {
+int start(StreamerInstance *instance, uint32_t numThreads) {
   // Check if initialized
-  if (not initialized) {
+  if (not instance) {
+    spdlog::error("Null streamer instance");
+    return -1;
+  }
+
+  if (not instance->initialized) {
     spdlog::error("Camera has not been initialized yet");
     return -1;
   }
 
-  if (running) {
+  if (instance->running) {
     spdlog::error("Already running");
     return -1;
   }
 
   // Now running
-  running = true;
+  instance->running = true;
 
   // Create the pool
-  pool.emplace(numThreads, size);
+  instance->pool.emplace(numThreads, instance->size);
 
   // Create the event callback
-  auto eventCallback = [&](const Metavision::EventCD *begin,
-                           const Metavision::EventCD *end) {
+  auto eventCallback = [&](const Metavision::EventCD *begin, const Metavision::EventCD *end) {
     // Submit task
-    pool->addTask({begin, end});
+    instance->pool->addTask({begin, end});
   };
 
   // Register the callback
   try {
-    camera->cd().add_callback(eventCallback);
-    camera->start();
+    instance->camera->cd().add_callback(eventCallback);
+    instance->camera->start();
   } catch (const std::exception &e) {
     spdlog::error(e.what());
     return -1;
@@ -93,46 +107,52 @@ int start(uint32_t numThreads) {
 
   // Create the main worker
   auto mainWorker = [&]() {
-    while (running) {
+    while (instance->running) {
       // Fade the image
-      pool->sum(*image);
+      instance->pool->sum(*instance->image);
     }
   };
 
   // Create the main worker thread
-  std::thread mainWorkerThread(mainWorker);
-  mainWorkerThread.detach();
+  instance->mainThread.emplace(mainWorker);
 
   spdlog::debug("Camera started");
 
   return 0;
 }
 
-int stop() {
+int stop(StreamerInstance *instance) {
   // Check if initialized
-  if (not initialized) {
+  if (not instance or not instance->initialized) {
     spdlog::error("Not initialized");
     return -1;
   }
 
   // Clean up if needed
-  if (camera) {
-    camera.reset();
+  if (instance->camera) {
+    instance->camera.reset();
   }
-  if (image) {
-    image.reset();
+  if (instance->image) {
+    instance->image.reset();
   }
-  if (pool) {
-    pool.reset();
+  if (instance->pool) {
+    instance->pool->shutdown();
+    instance->pool.reset();
   }
-  if (rawBuffer) {
-    delete[] rawBuffer;
-    rawBuffer = nullptr;
+  if (instance->rawBuffer) {
+    delete[] instance->rawBuffer;
+    instance->rawBuffer = nullptr;
+  }
+  if (instance->mainThread) {
+    instance->mainThread->join();
+    instance->mainThread.reset();
   }
 
   // Reset global variables
-  initialized = false;
-  running = false;
+  instance->initialized = false;
+  instance->running = false;
+
+  delete instance;
 
   spdlog::debug("Camera stream stopped");
   return 0;
@@ -143,22 +163,22 @@ int setVerbose(bool verbose) {
   return 0;
 }
 
-int setFadeTime(uint32_t milliseconds) {
-  if (not running) {
+int setFadeTime(StreamerInstance *instance, uint32_t milliseconds) {
+  if (not instance or not instance->running) {
     spdlog::error("Not running");
     return -1;
   }
 
-  pool->setFadeTime(milliseconds);
+  instance->pool->setFadeTime(milliseconds);
   return 0;
 }
 
-int getFadeTime(uint32_t *fadeTime) {
-  if (not running) {
+int getFadeTime(StreamerInstance *instance, uint32_t *fadeTime) {
+  if (not instance or not instance->running) {
     spdlog::error("Not running");
     return -1;
   }
 
-  *fadeTime = pool->getFadeTime();
+  *fadeTime = instance->pool->getFadeTime();
   return 0;
 }

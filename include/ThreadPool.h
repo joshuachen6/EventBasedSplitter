@@ -1,5 +1,6 @@
 #pragma once
 
+#include <condition_variable>
 #include <metavision/sdk/base/events/event_cd.h>
 #include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
@@ -9,9 +10,7 @@
 
 class ThreadPool {
 private:
-  tbb::concurrent_queue<
-      std::pair<const Metavision::EventCD *, const Metavision::EventCD *>>
-      taskQueue;
+  tbb::concurrent_queue<std::pair<const Metavision::EventCD *, const Metavision::EventCD *>> taskQueue;
   std::vector<std::thread> threadPool;
   std::vector<cv::Mat> workBuffer;
   bool running;
@@ -27,8 +26,7 @@ private:
    * @param end The end iterator
    * @param bufferIndex The work buffer to use
    */
-  void processEvents(const Metavision::EventCD *begin,
-                     const Metavision::EventCD *end, int bufferIndex);
+  void processEvents(const Metavision::EventCD *begin, const Metavision::EventCD *end, int bufferIndex);
   /**
    * @brief Fades a given mat
    *
@@ -49,8 +47,7 @@ public:
    *
    * @param task The events to be processed
    */
-  void addTask(const std::pair<const Metavision::EventCD *,
-                               const Metavision::EventCD *> &task);
+  void addTask(const std::pair<const Metavision::EventCD *, const Metavision::EventCD *> &task);
   /**
    * @brief Sums the frames together
    *

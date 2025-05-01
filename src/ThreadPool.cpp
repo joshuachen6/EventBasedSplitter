@@ -1,8 +1,8 @@
 #include "ThreadPool.h"
 #include <chrono>
-#include <condition_variable>
 #include <metavision/sdk/base/events/event_cd.h>
 #include <mutex>
+#include <opencv2/core.hpp>
 #include <opencv2/core/mat.hpp>
 #include <spdlog/spdlog.h>
 
@@ -12,8 +12,7 @@ ThreadPool::ThreadPool(int threads, cv::Size imageSize) {
   workBuffer.resize(threads);
 
   // Fill buffers
-  std::fill(workBuffer.begin(), workBuffer.end(),
-            cv::Mat::zeros(imageSize, CV_8UC3));
+  std::fill(workBuffer.begin(), workBuffer.end(), cv::Mat::zeros(imageSize, CV_8UC3));
 
   // Start running
   running = true;
@@ -36,8 +35,7 @@ ThreadPool::ThreadPool(int threads, cv::Size imageSize) {
         }
 
         // Check if there are tasks
-        std::pair<const Metavision::EventCD *, const Metavision::EventCD *>
-            events;
+        std::pair<const Metavision::EventCD *, const Metavision::EventCD *> events;
         // Remove from the queue
         auto status = taskQueue.try_pop(events);
         // Check if successful
@@ -48,8 +46,7 @@ ThreadPool::ThreadPool(int threads, cv::Size imageSize) {
         // If not successful or if timed out
         // Fade
         auto delta = now - startTime;
-        auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(delta)
-                      .count();
+        auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(delta).count();
         if (dt > 60) {
           fade(i);
           startTime = std::chrono::high_resolution_clock::now();
@@ -61,8 +58,7 @@ ThreadPool::ThreadPool(int threads, cv::Size imageSize) {
   spdlog::debug("Created thread pool with {} threads", threads);
 }
 
-void ThreadPool::addTask(const std::pair<const Metavision::EventCD *,
-                                         const Metavision::EventCD *> &task) {
+void ThreadPool::addTask(const std::pair<const Metavision::EventCD *, const Metavision::EventCD *> &task) {
   // Block for the lock
   {
     // Lock the mutex
@@ -74,9 +70,7 @@ void ThreadPool::addTask(const std::pair<const Metavision::EventCD *,
   conditionVariable.notify_one();
 }
 
-void ThreadPool::processEvents(const Metavision::EventCD *begin,
-                               const Metavision::EventCD *end,
-                               int bufferIndex) {
+void ThreadPool::processEvents(const Metavision::EventCD *begin, const Metavision::EventCD *end, int bufferIndex) {
   // Get the respective image
   cv::Mat &image = workBuffer[bufferIndex];
 
@@ -90,14 +84,11 @@ void ThreadPool::processEvents(const Metavision::EventCD *begin,
 }
 
 void ThreadPool::fade(int index) {
+  // Calculate the factor
   uint8_t factor = 255 / (fadeTime / 1e3 / 60);
-  cv::Mat &mat = workBuffer[index];
-  for (auto it = mat.begin<cv::Vec3b>(); it != mat.end<cv::Vec3b>(); ++it) {
-    for (auto i = 0; i < 2; ++i) {
-      auto &val = (*it)[i];
-      val = std::max(val - factor, 0);
-    }
-  }
+  // Get the mat
+  auto &mat = workBuffer[index];
+  mat -= factor;
 }
 
 void ThreadPool::sum(cv::Mat &output) {
