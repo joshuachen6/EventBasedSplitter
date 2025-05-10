@@ -60,4 +60,22 @@ int setFadeTime(StreamerInstance *instance, uint32_t milliseconds);
  * @return The status
  */
 int getFadeTime(StreamerInstance *instance, uint32_t *fadeTime);
+/**
+ * @brief Sets the number of times per second fade is applied
+ *
+ * @param Instance The stream instance pointer
+ * @param frequency The number of times the fade is applied
+ *
+ * @return The status
+ */
+int setFadeFrequency(StreamerInstance *instance, uint32_t frequency);
+/**
+ * @brief Get the fade number of times per second fade is applied
+ *
+ * @param Instance The stream instance pointer
+ * @param frequency The pointer to write the fade interval to
+ *
+ * @return The status
+ */
+int getFadeFrequency(StreamerInstance *instance, uint32_t *frequency);
 }

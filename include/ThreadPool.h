@@ -10,13 +10,15 @@
 
 class ThreadPool {
 private:
-  tbb::concurrent_queue<std::pair<const Metavision::EventCD *, const Metavision::EventCD *>> taskQueue;
+  tbb::concurrent_queue<
+      std::pair<const Metavision::EventCD *, const Metavision::EventCD *>>
+      taskQueue;
   std::vector<std::thread> threadPool;
   std::vector<cv::Mat> workBuffer;
   bool running;
   std::mutex waitMutex;
   std::condition_variable conditionVariable;
-
+  uint32_t fadeFrequency = 60;
   uint32_t fadeTime = 1e3;
 
   /**
@@ -26,7 +28,8 @@ private:
    * @param end The end iterator
    * @param bufferIndex The work buffer to use
    */
-  void processEvents(const Metavision::EventCD *begin, const Metavision::EventCD *end, int bufferIndex);
+  void processEvents(const Metavision::EventCD *begin,
+                     const Metavision::EventCD *end, int bufferIndex);
   /**
    * @brief Fades a given mat
    *
@@ -47,7 +50,8 @@ public:
    *
    * @param task The events to be processed
    */
-  void addTask(const std::pair<const Metavision::EventCD *, const Metavision::EventCD *> &task);
+  void addTask(const std::pair<const Metavision::EventCD *,
+                               const Metavision::EventCD *> &task);
   /**
    * @brief Sums the frames together
    *
@@ -66,6 +70,18 @@ public:
    * @return The fade time in milliseconds
    */
   uint32_t getFadeTime();
+  /**
+   * @brief Sets the fade frequency
+   *
+   * @param frequency The number of times the fade is applied per second
+   */
+  void setFadeFrequency(uint32_t frequency);
+  /**
+   * @brief Gets the number of times fade is applied per second
+   *
+   * @return The frequency
+   */
+  uint32_t getFadeFrequency();
   /**
    * @brief Stops the thread pool
    */

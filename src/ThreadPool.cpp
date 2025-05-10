@@ -50,7 +50,7 @@ ThreadPool::ThreadPool(int threads, cv::Size imageSize) {
         auto delta = now - startTime;
         auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(delta)
                       .count();
-        if (dt > 60) {
+        if (dt > 1000 / fadeFrequency) {
           fade(i);
           startTime = std::chrono::high_resolution_clock::now();
         }
@@ -116,6 +116,12 @@ void ThreadPool::sum(cv::Mat &output) {
 void ThreadPool::setFadeTime(uint32_t milliseconds) { fadeTime = milliseconds; }
 
 uint32_t ThreadPool::getFadeTime() { return fadeTime; }
+
+void ThreadPool::setFadeFrequency(uint32_t frequency) {
+  fadeFrequency = frequency;
+}
+
+uint32_t ThreadPool::getFadeFrequency() { return fadeFrequency; }
 
 void ThreadPool::shutdown() {
   running = false;
