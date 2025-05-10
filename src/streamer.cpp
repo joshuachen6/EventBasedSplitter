@@ -20,7 +20,8 @@ struct StreamerInstance {
   cv::Size size;
 };
 
-int initialize(StreamerInstance **instance, uint8_t **buffer, uint32_t *width, uint32_t *height) {
+int initialize(StreamerInstance **instance, uint8_t **buffer, uint32_t *width,
+               uint32_t *height) {
   // Check if valid pointer
   if (not instance) {
     spdlog::error("Nullptr passed");
@@ -49,7 +50,8 @@ int initialize(StreamerInstance **instance, uint8_t **buffer, uint32_t *width, u
   std::fill_n((*instance)->rawBuffer, *width * *height * 3, 0);
 
   // Create the image
-  (*instance)->image = cv::Mat(*height, *width, CV_8UC3, (*instance)->rawBuffer);
+  (*instance)->image =
+      cv::Mat(*height, *width, CV_8UC3, (*instance)->rawBuffer);
 
   // Assign the buffer
   *buffer = (*instance)->rawBuffer;
@@ -85,7 +87,8 @@ int start(StreamerInstance *instance, uint32_t numThreads) {
   instance->pool.emplace(numThreads, instance->size);
 
   // Create the event callback
-  auto eventCallback = [&](const Metavision::EventCD *begin, const Metavision::EventCD *end) {
+  auto eventCallback = [instance](const Metavision::EventCD *begin,
+                                  const Metavision::EventCD *end) {
     // Submit task
     instance->pool->addTask({begin, end});
   };
@@ -100,7 +103,7 @@ int start(StreamerInstance *instance, uint32_t numThreads) {
   }
 
   // Create the main worker
-  auto mainWorker = [&]() {
+  auto mainWorker = [instance]() {
     while (instance->running) {
       // Fade the image
       instance->pool->sum(*instance->image);
@@ -152,7 +155,7 @@ int stop(StreamerInstance *instance) {
   return 0;
 }
 
-int setVerbose(bool verbose) {
+int setVerbose(StreamerInstance *instance, uint8_t verbose) {
   spdlog::set_level(verbose ? spdlog::level::debug : spdlog::level::info);
   return 0;
 }

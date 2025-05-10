@@ -14,7 +14,8 @@ typedef struct StreamerInstance StreamerInstance;
  *
  * @return The status
  */
-int initialize(StreamerInstance **instance, uint8_t **buffer, uint32_t *width, uint32_t *height);
+int initialize(StreamerInstance **instance, uint8_t **buffer, uint32_t *width,
+               uint32_t *height);
 /**
  * @brief Starts the stream
  *
