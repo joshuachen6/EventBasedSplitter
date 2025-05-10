@@ -15,6 +15,10 @@ def main():
     # Load the shared library
     library = ctypes.CDLL(path_to_lib)
 
+    # Pointer to the instance
+    instance = ctypes.POINTER(ctypes.c_voidp)()
+    instance_pointer = ctypes.pointer(instance)
+
     # Pointer to the buffer
     buffer = ctypes.POINTER(ctypes.c_uint8)()
     buffer_pointer = ctypes.pointer(buffer)
@@ -27,14 +31,18 @@ def main():
     height = ctypes.c_uint32(0)
     height_pointer = ctypes.pointer(height)
 
-    # Set verbose output
-    library.setVerbose(True)
-
     # Initialize
-    status = library.initialize(buffer_pointer, width_pointer, height_pointer)
+    status = library.initialize(
+        instance_pointer, buffer_pointer, width_pointer, height_pointer
+    )
     if status != 0:
         loguru.logger.critical("Failed to initialize camera stream")
         return
+
+    loguru.logger.debug("Configuring")
+
+    # Set verbose output
+    library.setVerbose(instance_pointer.contents, 1)
 
     # Get values
     width = width_pointer.contents.value
@@ -42,16 +50,20 @@ def main():
     loguru.logger.debug("Size ({}, {})", width, height)
 
     # Start the stream
-    status = library.start(14)
+    status = library.start(instance_pointer.contents, 14)
     if status != 0:
         loguru.logger.critical("Failed to start camera stream")
         return
 
+    loguru.logger.debug("Camera stream started")
+
     # Set the fade
-    status = library.setFadeTime(1_000)
+    status = library.setFadeTime(instance_pointer.contents, 1_000)
     if status != 0:
         loguru.logger.critical("Failed to set the fade time")
         return
+
+    loguru.logger.debug("Fade time set")
 
     # Load into numpy array
     buffer = numpy.ctypeslib.as_array(buffer_pointer.contents, (height, width, 3))
@@ -64,7 +76,7 @@ def main():
             break
 
     # Stop the stream
-    library.stop()
+    library.stop(instance_pointer.contents)
 
 
 if __name__ == "__main__":

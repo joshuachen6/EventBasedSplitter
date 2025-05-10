@@ -1,8 +1,8 @@
 #include "ThreadPool.h"
 #include <chrono>
-#include <condition_variable>
 #include <metavision/sdk/base/events/event_cd.h>
 #include <mutex>
+#include <opencv2/core.hpp>
 #include <opencv2/core/mat.hpp>
 #include <spdlog/spdlog.h>
 
@@ -90,6 +90,7 @@ void ThreadPool::processEvents(const Metavision::EventCD *begin,
 }
 
 void ThreadPool::fade(int index) {
+  // Calculate the factor
   uint8_t factor = 255 / (fadeTime / 1e3 / 60);
   cv::Mat &mat = workBuffer[index];
   for (auto it = mat.begin<cv::Vec3b>(); it != mat.end<cv::Vec3b>(); ++it) {
