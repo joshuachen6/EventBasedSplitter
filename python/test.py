@@ -63,7 +63,12 @@ def main():
         loguru.logger.critical("Failed to set the fade time")
         return
 
-    loguru.logger.debug("Fade time set")
+    status = library.setFadeFrequency(instance_pointer.contents, 60)
+    if status != 0:
+        loguru.logger.critical("Failed to set the fade frequency")
+        return
+
+    loguru.logger.debug("Fade set")
 
     # Load into numpy array
     buffer = numpy.ctypeslib.as_array(buffer_pointer.contents, (height, width, 3))

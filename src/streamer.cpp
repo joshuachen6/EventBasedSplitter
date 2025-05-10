@@ -179,3 +179,23 @@ int getFadeTime(StreamerInstance *instance, uint32_t *fadeTime) {
   *fadeTime = instance->pool->getFadeTime();
   return 0;
 }
+
+int setFadeFrequency(StreamerInstance *instance, uint32_t frequency) {
+  if (not instance or not instance->running) {
+    spdlog::error("Not running");
+    return -1;
+  }
+
+  instance->pool->setFadeFrequency(frequency);
+  return 0;
+}
+
+int getFadeFrequency(StreamerInstance *instance, uint32_t *frequency) {
+  if (not instance or not instance->running) {
+    spdlog::error("Not running");
+    return -1;
+  }
+
+  *frequency = instance->pool->getFadeFrequency();
+  return 0;
+}
