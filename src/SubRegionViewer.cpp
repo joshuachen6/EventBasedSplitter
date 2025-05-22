@@ -8,17 +8,22 @@
 // --- SubRegionViewer::Config Implementation ---
 
 SubRegionViewer::Config::Config(SubRegionViewer *parent)
-    : parentViewer(parent), cornerOffsetX(10), cornerOffsetY(10), subViewWidth(100), subViewHeight(80), subViewScale(1.5f), // Adjusted default scale
-      showCenterView(true), showTopLeftView(true), showTopRightView(true), showBottomLeftView(true), showBottomRightView(true) {
+    : parentViewer(parent), cornerOffsetX(10), cornerOffsetY(10),
+      subViewWidth(100), subViewHeight(80), subViewScale(1.5f),
+      showCenterView(true), showTopLeftView(true), showTopRightView(true),
+      showBottomLeftView(true), showBottomRightView(true) {
   if (!parentViewer) {
-    spdlog::error("SubRegionViewer::Config: Initialized with a null parent SubRegionViewer pointer.");
-    throw std::invalid_argument("Parent viewer instance cannot be null for SubRegionViewer::Config.");
+    spdlog::error("SubRegionViewer::Config: Initialized with a null parent "
+                  "SubRegionViewer pointer.");
+    throw std::invalid_argument(
+        "Parent viewer instance cannot be null for SubRegionViewer::Config.");
   }
 }
 
 void SubRegionViewer::Config::render() {
   if (!parentViewer || !parentViewer->cameraStream) {
-    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: Parent Viewer or CameraStream not available.");
+    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
+                       "Error: Parent Viewer or CameraStream not available.");
     return;
   }
 
@@ -29,7 +34,6 @@ void SubRegionViewer::Config::render() {
     streamH = parentViewer->cameraStream->getHeight();
   }
 
-  // Ensure stream dimensions are somewhat reasonable for sliders, even if not fully initialized yet
   int maxW = streamW > 0 ? static_cast<int>(streamW) : 1920;
   int maxH = streamH > 0 ? static_cast<int>(streamH) : 1080;
 
@@ -38,13 +42,14 @@ void SubRegionViewer::Config::render() {
   ImGui::Text("Sub-View Dimensions (pixels):");
   ImGui::DragInt("ROI Width##SubViewDim", &subViewWidth, 1.0f, 10, maxW);
   ImGui::DragInt("ROI Height##SubViewDim", &subViewHeight, 1.0f, 10, maxH);
-  subViewWidth = std::max(10, subViewWidth); // Ensure minimum size
+  subViewWidth = std::max(10, subViewWidth);
   subViewHeight = std::max(10, subViewHeight);
 
   ImGui::Text("Corner Offsets (from edge):");
-  // Max offset should prevent subview from going completely off-center or overlapping excessively
-  int maxOffsetX = streamW > 0 ? (static_cast<int>(streamW) - subViewWidth) / 2 - 5 : 200;
-  int maxOffsetY = streamH > 0 ? (static_cast<int>(streamH) - subViewHeight) / 2 - 5 : 200;
+  int maxOffsetX =
+      streamW > 0 ? (static_cast<int>(streamW) - subViewWidth) / 2 - 5 : 200;
+  int maxOffsetY =
+      streamH > 0 ? (static_cast<int>(streamH) - subViewHeight) / 2 - 5 : 200;
   maxOffsetX = std::max(0, maxOffsetX);
   maxOffsetY = std::max(0, maxOffsetY);
 
@@ -54,7 +59,8 @@ void SubRegionViewer::Config::render() {
   cornerOffsetY = std::max(0, cornerOffsetY);
 
   ImGui::Text("Display Scale Factor:");
-  ImGui::DragFloat("Scale##SubViewScale", &subViewScale, 0.05f, 0.1f, 10.0f, "%.2f");
+  ImGui::DragFloat("Scale##SubViewScale", &subViewScale, 0.05f, 0.1f, 10.0f,
+                   "%.2f");
   subViewScale = std::max(0.1f, subViewScale);
 
   ImGui::Separator();
@@ -70,7 +76,8 @@ void SubRegionViewer::Config::render() {
 
 // --- SubRegionViewer Implementation ---
 
-SubRegionViewer::SubRegionViewer(std::shared_ptr<ICameraStream> stream, const std::string &title)
+SubRegionViewer::SubRegionViewer(std::shared_ptr<ICameraStream> stream,
+                                 const std::string &title)
     : cameraStream(stream), windowTitle(title), showWindow(true) {
   configController = std::make_shared<Config>(this);
   subViewTextureIds.fill(0);
@@ -78,7 +85,9 @@ SubRegionViewer::SubRegionViewer(std::shared_ptr<ICameraStream> stream, const st
   subViewTextureHeights.fill(0);
 
   if (!cameraStream) {
-    spdlog::error("SubRegionViewer: Initialized with a null ICameraStream pointer for title '{}'.", windowTitle);
+    spdlog::error("SubRegionViewer: Initialized with a null ICameraStream "
+                  "pointer for title '{}'.",
+                  windowTitle);
   }
   spdlog::debug("SubRegionViewer '{}' created.", windowTitle);
 }
@@ -88,12 +97,16 @@ SubRegionViewer::~SubRegionViewer() {
   spdlog::debug("SubRegionViewer '{}' destroyed.", windowTitle);
 }
 
-std::shared_ptr<::IConfig> SubRegionViewer::getConfigUI() { return configController; }
+std::shared_ptr<::IConfig> SubRegionViewer::getConfigUI() {
+  return configController;
+}
 
 void SubRegionViewer::cleanupSubViewTexture(SubViewType type) {
   if (subViewTextureIds[type] != 0) {
     glDeleteTextures(1, &subViewTextureIds[type]);
-    spdlog::debug("SubRegionViewer '{}': OpenGL texture {} for view {} deleted.", windowTitle, subViewTextureIds[type], (int)type);
+    spdlog::debug(
+        "SubRegionViewer '{}': OpenGL texture {} for view {} deleted.",
+        windowTitle, subViewTextureIds[type], (int)type);
     subViewTextureIds[type] = 0;
     subViewTextureWidths[type] = 0;
     subViewTextureHeights[type] = 0;
@@ -106,13 +119,17 @@ void SubRegionViewer::cleanupAllSubViewTextures() {
   }
 }
 
-bool SubRegionViewer::initializeSubViewTexture(SubViewType type, uint32_t width, uint32_t height) {
+bool SubRegionViewer::initializeSubViewTexture(SubViewType type, uint32_t width,
+                                               uint32_t height) {
   if (width == 0 || height == 0) {
-    spdlog::warn("SubRegionViewer '{}': Attempted to initialize texture for view {} with zero dimensions.", windowTitle, (int)type);
+    spdlog::warn("SubRegionViewer '{}': Attempted to initialize texture for "
+                 "view {} with zero dimensions.",
+                 windowTitle, (int)type);
     return false;
   }
 
-  if (subViewTextureIds[type] != 0 && (subViewTextureWidths[type] != width || subViewTextureHeights[type] != height)) {
+  if (subViewTextureIds[type] != 0 && (subViewTextureWidths[type] != width ||
+                                       subViewTextureHeights[type] != height)) {
     cleanupSubViewTexture(type);
   }
 
@@ -123,7 +140,8 @@ bool SubRegionViewer::initializeSubViewTexture(SubViewType type, uint32_t width,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR,
+                 GL_UNSIGNED_BYTE, nullptr);
     subViewTextureWidths[type] = width;
     subViewTextureHeights[type] = height;
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -131,8 +149,10 @@ bool SubRegionViewer::initializeSubViewTexture(SubViewType type, uint32_t width,
   return subViewTextureIds[type] != 0;
 }
 
-void SubRegionViewer::updateSubViewTexture(SubViewType type, const cv::Mat &subImage) {
-  if (subImage.empty() || subImage.channels() != 3 || subImage.type() != CV_8UC3) {
+void SubRegionViewer::updateSubViewTexture(SubViewType type,
+                                           const cv::Mat &subImage) {
+  if (subImage.empty() || subImage.channels() != 3 ||
+      subImage.type() != CV_8UC3) {
     return;
   }
   uint32_t subWidth = subImage.cols;
@@ -142,7 +162,8 @@ void SubRegionViewer::updateSubViewTexture(SubViewType type, const cv::Mat &subI
     return;
   }
   glBindTexture(GL_TEXTURE_2D, subViewTextureIds[type]);
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, subWidth, subHeight, GL_BGR, GL_UNSIGNED_BYTE, subImage.data);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, subWidth, subHeight, GL_BGR,
+                  GL_UNSIGNED_BYTE, subImage.data);
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -159,7 +180,8 @@ void SubRegionViewer::render() {
   }
 
   if (!cameraStream->isRunning()) {
-    ImGui::Text("Camera stream is not running. Start the stream to view sub-regions.");
+    ImGui::Text(
+        "Camera stream is not running. Start the stream to view sub-regions.");
     ImGui::End();
     return;
   }
@@ -187,29 +209,32 @@ void SubRegionViewer::render() {
   offX = std::min(std::max(0, offX), (int)fullWidth - roiW);
   offY = std::min(std::max(0, offY), (int)fullHeight - roiH);
 
-  ImVec2 scaledDisplaySize(static_cast<float>(roiW) * scale, static_cast<float>(roiH) * scale);
+  ImVec2 scaledDisplaySize(static_cast<float>(roiW) * scale,
+                           static_cast<float>(roiH) * scale);
 
-  // Helper lambda to render a single view with its label
-  auto renderViewWithLabel = [&](SubViewType type, const char *label, cv::Rect roi) {
-    if (roi.x < 0 || roi.y < 0 || roi.x + roi.width > (int)fullWidth || roi.y + roi.height > (int)fullHeight) {
-      // spdlog::warn("SubRegionViewer: ROI for {} is out of bounds.", label);
-      return; // Skip rendering if ROI is invalid
+  auto renderViewWithLabel = [&](SubViewType type, const char *label,
+                                 cv::Rect roi) {
+    if (roi.x < 0 || roi.y < 0 || roi.x + roi.width > (int)fullWidth ||
+        roi.y + roi.height > (int)fullHeight) {
+      return;
     }
     cv::Mat subImage = fullFrameMat(roi);
     updateSubViewTexture(type, subImage);
     if (subViewTextureIds[type] != 0) {
       ImGui::BeginGroup();
       ImGui::Text("%s", label);
-      ImGui::Image((void *)(intptr_t)subViewTextureIds[type], scaledDisplaySize);
+      // Corrected cast for ImTextureID if it's an integer type like unsigned
+      // long long
+      ImGui::Image(static_cast<ImTextureID>(
+                       static_cast<intptr_t>(subViewTextureIds[type])),
+                   scaledDisplaySize);
       ImGui::EndGroup();
     }
   };
 
-  // Layout using ImGui's available space and cursor positioning
   float windowContentWidth = ImGui::GetContentRegionAvail().x;
   float itemSpacing = ImGui::GetStyle().ItemSpacing.x;
 
-  // Top Row
   if (configController->showTopLeftView) {
     cv::Rect tlRoi(offX, offY, roiW, roiH);
     renderViewWithLabel(SubViewType::TOP_LEFT, "Top-Left", tlRoi);
@@ -217,29 +242,28 @@ void SubRegionViewer::render() {
 
   if (configController->showTopRightView) {
     float trPosX = windowContentWidth - scaledDisplaySize.x;
-    if (configController->showTopLeftView) {                           // If TL is shown, TR is to its right
-      trPosX = std::max(ImGui::GetCursorPosX() + itemSpacing, trPosX); // Ensure it's to the right of TL
-      ImGui::SameLine(0, 0);                                           // Stay on same line, but allow custom pos
+    if (configController->showTopLeftView) {
+      trPosX = std::max(ImGui::GetCursorPosX() + itemSpacing, trPosX);
+      ImGui::SameLine(0, 0);
       ImGui::SetCursorPosX(trPosX);
-    } else { // TR is first on the line, align it to the far right
+    } else {
       ImGui::SetCursorPosX(trPosX);
     }
     cv::Rect trRoi(fullWidth - roiW - offX, offY, roiW, roiH);
     renderViewWithLabel(SubViewType::TOP_RIGHT, "Top-Right", trRoi);
   }
-  ImGui::NewLine(); // Ensure center starts on a new line
+  ImGui::NewLine();
 
-  // Center Row
   if (configController->showCenterView) {
     float centerPosX = (windowContentWidth - scaledDisplaySize.x) * 0.5f;
-    centerPosX = std::max(ImGui::GetStyle().WindowPadding.x, centerPosX); // Ensure it respects padding
+    centerPosX = std::max(ImGui::GetStyle().WindowPadding.x, centerPosX);
     ImGui::SetCursorPosX(centerPosX);
-    cv::Rect centerRoi((fullWidth - roiW) / 2, (fullHeight - roiH) / 2, roiW, roiH);
+    cv::Rect centerRoi((fullWidth - roiW) / 2, (fullHeight - roiH) / 2, roiW,
+                       roiH);
     renderViewWithLabel(SubViewType::CENTER, "Center", centerRoi);
   }
-  ImGui::NewLine(); // Ensure bottom row starts on a new line
+  ImGui::NewLine();
 
-  // Bottom Row
   if (configController->showBottomLeftView) {
     cv::Rect blRoi(offX, fullHeight - roiH - offY, roiW, roiH);
     renderViewWithLabel(SubViewType::BOTTOM_LEFT, "Bottom-Left", blRoi);
@@ -254,7 +278,8 @@ void SubRegionViewer::render() {
     } else {
       ImGui::SetCursorPosX(brPosX);
     }
-    cv::Rect brRoi(fullWidth - roiW - offX, fullHeight - roiH - offY, roiW, roiH);
+    cv::Rect brRoi(fullWidth - roiW - offX, fullHeight - roiH - offY, roiW,
+                   roiH);
     renderViewWithLabel(SubViewType::BOTTOM_RIGHT, "Bottom-Right", brRoi);
   }
 

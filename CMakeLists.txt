@@ -42,4 +42,4 @@ target_link_libraries(main PRIVATE
 )
 
 target_compile_features(main PRIVATE cxx_std_20)
-target_compile_options(main PRIVATE -Wall -fpermissive)
+target_compile_options(main PRIVATE -Wall)
