@@ -12,7 +12,8 @@
 
 class MockCameraStream : public ICameraStream {
 public:
-  MockCameraStream(uint32_t mockWidth = 640, uint32_t mockHeight = 480, uint32_t mockChannels = 3);
+  MockCameraStream(uint32_t mockWidth = 1280, uint32_t mockHeight = 720,
+                   uint32_t mockChannels = 3);
   ~MockCameraStream() override;
 
   MockCameraStream(const MockCameraStream &) = delete;
@@ -58,5 +59,6 @@ private:
   std::mt19937 randomEngine;
   std::uniform_int_distribution<uint8_t> randomByteDistribution;
 
-  std::shared_ptr<ICameraStream::Config> configController; // Instance of the common config
+  std::shared_ptr<ICameraStream::Config>
+      configController; // Instance of the common config
 };

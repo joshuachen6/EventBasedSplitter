@@ -8,8 +8,8 @@
 // --- SubRegionViewer::Config Implementation ---
 
 SubRegionViewer::Config::Config(SubRegionViewer *parent)
-    : parentViewer(parent), cornerOffsetX(10), cornerOffsetY(10),
-      subViewWidth(100), subViewHeight(80), subViewScale(1.5f),
+    : parentViewer(parent), cornerOffsetX(0), cornerOffsetY(0),
+      subViewWidth(20), subViewHeight(20), subViewScale(10.0f),
       showCenterView(true), showTopLeftView(true), showTopRightView(true),
       showBottomLeftView(true), showBottomRightView(true) {
   if (!parentViewer) {
@@ -140,8 +140,23 @@ bool SubRegionViewer::initializeSubViewTexture(SubViewType type, uint32_t width,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Important: Set unpack alignment before allocating texture data if data
+    // were passed directly For nullptr data, it's less critical for allocation
+    // itself but good for consistency. The actual data upload in
+    // updateSubViewTexture is where it's most important. GLint
+    // previousAlignment; glGetIntegerv(GL_UNPACK_ALIGNMENT,
+    // &previousAlignment);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // Expect tightly packed data
+
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR,
                  GL_UNSIGNED_BYTE, nullptr);
+
+    // glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment); // Restore
+    // previous alignment
+    glPixelStorei(GL_UNPACK_ALIGNMENT,
+                  4); // Restore default alignment (more common)
+
     subViewTextureWidths[type] = width;
     subViewTextureHeights[type] = height;
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -158,12 +173,27 @@ void SubRegionViewer::updateSubViewTexture(SubViewType type,
   uint32_t subWidth = subImage.cols;
   uint32_t subHeight = subImage.rows;
 
-  if (!initializeSubViewTexture(type, subWidth, subHeight)) {
+  if (!initializeSubViewTexture(
+          type, subWidth,
+          subHeight)) { // Initializes or reinitializes if needed
     return;
   }
+
   glBindTexture(GL_TEXTURE_2D, subViewTextureIds[type]);
+
+  // GLint previousAlignment;
+  // glGetIntegerv(GL_UNPACK_ALIGNMENT, &previousAlignment);
+  glPixelStorei(
+      GL_UNPACK_ALIGNMENT,
+      1); // Tell OpenGL that data is tightly packed (1-byte alignment)
+
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, subWidth, subHeight, GL_BGR,
                   GL_UNSIGNED_BYTE, subImage.data);
+
+  // glPixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment); // Restore previous
+  // alignment
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4); // Restore default alignment
+
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -206,6 +236,8 @@ void SubRegionViewer::render() {
 
   roiW = std::min(std::max(10, roiW), (int)fullWidth);
   roiH = std::min(std::max(10, roiH), (int)fullHeight);
+  // Ensure offsets combined with ROI dimensions do not exceed full frame
+  // dimensions
   offX = std::min(std::max(0, offX), (int)fullWidth - roiW);
   offY = std::min(std::max(0, offY), (int)fullHeight - roiH);
 
@@ -214,8 +246,19 @@ void SubRegionViewer::render() {
 
   auto renderViewWithLabel = [&](SubViewType type, const char *label,
                                  cv::Rect roi) {
-    if (roi.x < 0 || roi.y < 0 || roi.x + roi.width > (int)fullWidth ||
+    // Ensure ROI is valid before trying to create a sub-image
+    if (roi.x < 0 || roi.y < 0 || roi.width <= 0 || roi.height <= 0 ||
+        roi.x + roi.width > (int)fullWidth ||
         roi.y + roi.height > (int)fullHeight) {
+      // Optionally log this invalid ROI attempt
+      // spdlog::warn("SubRegionViewer: ROI for {} ({},{},{}x{}) is out of
+      // bounds for full {}x{}.",
+      //              label, roi.x, roi.y, roi.width, roi.height, fullWidth,
+      //              fullHeight);
+      ImGui::BeginGroup();
+      ImGui::Text("%s: Invalid ROI", label);
+      ImGui::Dummy(scaledDisplaySize); // Placeholder for size
+      ImGui::EndGroup();
       return;
     }
     cv::Mat subImage = fullFrameMat(roi);
@@ -223,10 +266,7 @@ void SubRegionViewer::render() {
     if (subViewTextureIds[type] != 0) {
       ImGui::BeginGroup();
       ImGui::Text("%s", label);
-      // Corrected cast for ImTextureID if it's an integer type like unsigned
-      // long long
-      ImGui::Image(static_cast<ImTextureID>(
-                       static_cast<intptr_t>(subViewTextureIds[type])),
+      ImGui::Image(static_cast<ImTextureID>(subViewTextureIds[type]),
                    scaledDisplaySize);
       ImGui::EndGroup();
     }
@@ -235,16 +275,23 @@ void SubRegionViewer::render() {
   float windowContentWidth = ImGui::GetContentRegionAvail().x;
   float itemSpacing = ImGui::GetStyle().ItemSpacing.x;
 
+  // Top Row
   if (configController->showTopLeftView) {
     cv::Rect tlRoi(offX, offY, roiW, roiH);
     renderViewWithLabel(SubViewType::TOP_LEFT, "Top-Left", tlRoi);
   }
 
   if (configController->showTopRightView) {
-    float trPosX = windowContentWidth - scaledDisplaySize.x;
-    if (configController->showTopLeftView) {
-      trPosX = std::max(ImGui::GetCursorPosX() + itemSpacing, trPosX);
-      ImGui::SameLine(0, 0);
+    float trPosX = windowContentWidth - scaledDisplaySize.x -
+                   ImGui::GetStyle().WindowPadding.x; // Adjust for padding
+    trPosX = std::max(0.0f, trPosX);                  // Ensure not negative
+    if (configController->showTopLeftView &&
+        subViewTextureIds[SubViewType::TOP_LEFT] != 0) {
+      float currentXAfterTL =
+          ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + itemSpacing;
+      trPosX = std::max(currentXAfterTL, trPosX);
+      ImGui::SameLine(
+          0, 0); // Stay on same line, but allow custom pos if needed after this
       ImGui::SetCursorPosX(trPosX);
     } else {
       ImGui::SetCursorPosX(trPosX);
@@ -254,6 +301,7 @@ void SubRegionViewer::render() {
   }
   ImGui::NewLine();
 
+  // Center Row
   if (configController->showCenterView) {
     float centerPosX = (windowContentWidth - scaledDisplaySize.x) * 0.5f;
     centerPosX = std::max(ImGui::GetStyle().WindowPadding.x, centerPosX);
@@ -264,15 +312,21 @@ void SubRegionViewer::render() {
   }
   ImGui::NewLine();
 
+  // Bottom Row
   if (configController->showBottomLeftView) {
     cv::Rect blRoi(offX, fullHeight - roiH - offY, roiW, roiH);
     renderViewWithLabel(SubViewType::BOTTOM_LEFT, "Bottom-Left", blRoi);
   }
 
   if (configController->showBottomRightView) {
-    float brPosX = windowContentWidth - scaledDisplaySize.x;
-    if (configController->showBottomLeftView) {
-      brPosX = std::max(ImGui::GetCursorPosX() + itemSpacing, brPosX);
+    float brPosX = windowContentWidth - scaledDisplaySize.x -
+                   ImGui::GetStyle().WindowPadding.x; // Adjust for padding
+    brPosX = std::max(0.0f, brPosX);                  // Ensure not negative
+    if (configController->showBottomLeftView &&
+        subViewTextureIds[SubViewType::BOTTOM_LEFT] != 0) {
+      float currentXAfterBL =
+          ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + itemSpacing;
+      brPosX = std::max(currentXAfterBL, brPosX);
       ImGui::SameLine(0, 0);
       ImGui::SetCursorPosX(brPosX);
     } else {
