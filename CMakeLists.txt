@@ -1,26 +1,45 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.25)
+project(MyNewProject CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
-set(CMAKE_CXX_STANDARD 26)
+
+include(FetchContent)
 
 find_package(MetavisionSDK COMPONENTS core stream ui REQUIRED)
-
 find_package(OpenCV REQUIRED)
-include_Directories(${OpenCV_INCLUDE_DIRS})
-
 find_package(spdlog REQUIRED)
-
 find_package(TBB REQUIRED)
+find_package(OpenGL REQUIRED)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
-file(GLOB_RECURSE SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-add_library(lib SHARED ${SOURCES})
+include_directories(include)
+include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(imgui)
 
-target_link_libraries(lib PRIVATE MetavisionSDK::core MetavisionSDK::stream MetavisionSDK::ui)
-target_link_libraries(lib PRIVATE ${OpenCV_LIBRARIES})
-target_link_libraries(lib PRIVATE spdlog::spdlog)
-target_link_libraries(lib PRIVATE TBB::tbb)
+file(GLOB_RECURSE APP_SOURCES "src/*.cpp")
 
-target_compile_options(lib PRIVATE -Wall)
+file(GLOB IMGUI_CORE "imgui/*.cpp")
 
+add_executable(main
+    ${APP_SOURCES}
+    ${IMGUI_CORE}
+    imgui/backends/imgui_impl_glfw.cpp
+    imgui/backends/imgui_impl_opengl3.cpp
+)
+
+target_link_libraries(main PRIVATE
+    MetavisionSDK::core
+    MetavisionSDK::stream
+    MetavisionSDK::ui
+    ${OpenCV_LIBRARIES}
+    spdlog::spdlog
+    TBB::tbb
+    glfw
+    OpenGL::GL
+)
+
+target_compile_features(main PRIVATE cxx_std_20)
+target_compile_options(main PRIVATE -Wall -fpermissive)
