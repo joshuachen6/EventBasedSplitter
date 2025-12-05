@@ -113,10 +113,9 @@ void ThreadPool::sum(cv::Mat &output) {
   if (workBuffer.size()) {
     // Override output with first buffer
     workBuffer[0].copyTo(output);
-    // Go through all buffers
-    for (auto i = 1; i < workBuffer.size(); ++i) {
-      // Combine all other buffers ontop
-      output += workBuffer[i];
+    // Go through all buffers, take max to avoid flicker from addition overflow
+    for (size_t i = 1; i < workBuffer.size(); ++i) {
+      cv::max(output, workBuffer[i], output);
     }
   }
 }
