@@ -90,13 +90,21 @@ void ThreadPool::processEvents(const Metavision::EventCD *begin,
 }
 
 void ThreadPool::fade(int index) {
-  // Calculate the factor
-  uint8_t factor = 255 / (fadeTime / 1e3 / 60);
+  // Calculate the factor: how much to subtract per fade call
+  // fadeTime = total ms to fade from 255 to 0
+  // fadeFrequency = fade calls per second
+  // totalCalls = (fadeTime / 1000) * fadeFrequency
+  // factor = 255 / totalCalls = (255 * 1000) / (fadeTime * fadeFrequency)
+  uint32_t freq = fadeFrequency > 0 ? fadeFrequency : 60;
+  uint32_t time = fadeTime > 0 ? fadeTime : 1000;
+  uint32_t factor = (255 * 1000) / (time * freq);
+  if (factor < 1) factor = 1;  // Ensure progress
+
   cv::Mat &mat = workBuffer[index];
   for (auto it = mat.begin<cv::Vec3b>(); it != mat.end<cv::Vec3b>(); ++it) {
     for (auto i = 0; i < 2; ++i) {
       auto &val = (*it)[i];
-      val = std::max(val - factor, 0);
+      val = static_cast<uint8_t>(std::max(static_cast<int>(val) - static_cast<int>(factor), 0));
     }
   }
 }

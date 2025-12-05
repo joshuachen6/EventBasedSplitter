@@ -55,6 +55,9 @@ ConcreteCameraStream::ConcreteCameraStream()
     throw std::runtime_error(buildErrorMessage("initialize (buffer allocation)", e.what()));
   }
 
+  // Create bias config controller with access to the camera
+  biasConfigController = std::make_shared<BiasConfig>(&camera);
+
   initialized = true;
   // Set initial verbose state based on spdlog's current global level, or a default.
   // currentVerboseSetting is false by default. setVerbose will update it.
@@ -109,6 +112,8 @@ ConcreteCameraStream::~ConcreteCameraStream() {
 }
 
 std::shared_ptr<ICameraStream::Config> ConcreteCameraStream::getConfig() { return configController; }
+
+std::shared_ptr<BiasConfig> ConcreteCameraStream::getBiasConfig() { return biasConfigController; }
 
 void ConcreteCameraStream::setVerbose(bool verbose_flag) {
   try {

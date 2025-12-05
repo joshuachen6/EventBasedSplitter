@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ICameraStream.hpp" // Include the updated interface
+#include "BiasConfig.hpp"    // Bias configuration UI
 
 #include <cstdint>
 #include <memory> // For std::shared_ptr, std::make_shared
@@ -25,6 +26,12 @@ public:
 
   // --- ICameraStream Interface Implementation ---
   std::shared_ptr<ICameraStream::Config> getConfig() override;
+
+  /**
+   * @brief Gets the bias configuration UI for this camera stream.
+   * @return A shared_ptr to the BiasConfig object.
+   */
+  std::shared_ptr<BiasConfig> getBiasConfig();
 
   void start(uint32_t numThreads) override;
   void stop() override;
@@ -56,6 +63,7 @@ private:
   bool currentVerboseSetting; // Stores the current verbose state
 
   std::shared_ptr<ICameraStream::Config> configController; // Instance of the common config
+  std::shared_ptr<BiasConfig> biasConfigController;        // Instance of the bias config
 
   static std::string buildErrorMessage(const char *operation, const std::string &details = "");
   void performCleanup();

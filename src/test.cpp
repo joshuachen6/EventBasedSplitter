@@ -17,10 +17,15 @@
 #include <string>
 #include <vector>
 
+#include <spdlog/spdlog.h>
+
 // GLFW error callback
 static void glfw_error_callback(int error, const char *description) { std::cerr << "GLFW Error " << error << ": " << description << std::endl; }
 
 int main(int, char **) {
+  // Set log level to debug
+  spdlog::set_level(spdlog::level::debug);
+  
   // Setup GLFW window
   glfwSetErrorCallback(glfw_error_callback);
   if (!glfwInit()) {
@@ -109,6 +114,14 @@ int main(int, char **) {
       registry->addConfig(useMockStream ? "Mock Camera Settings" : "Camera Settings", camConfig);
     } else {
       std::cerr << "Warning: Could not get ICameraStream::Config object." << std::endl;
+    }
+
+    // Register bias config if using real camera
+    if (!useMockStream) {
+      auto concreteCam = std::dynamic_pointer_cast<ConcreteCameraStream>(cameraStream);
+      if (concreteCam && concreteCam->getBiasConfig()) {
+        registry->addConfig("Bias Settings", concreteCam->getBiasConfig());
+      }
     }
 
     rawViewer = std::make_shared<RawViewer>(cameraStream, useMockStream ? "Mock Full View" : "Live Full View");
